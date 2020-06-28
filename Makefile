@@ -1,4 +1,4 @@
-SRC = src/parser.scm src/compile.scm
+SRC = src/parser.scm src/main.scm src/compiler.scm src/emitter.scm
 OBJ = $(SRC:.scm=.o)
 CSCFLAGS = -static
 #CSCFLAGS =
@@ -10,12 +10,6 @@ compiler: $(OBJ)
 
 %.o: %.scm
 	chicken-csc $(CSCFLAGS) -c $<
-
-lextest: lextest.scm
-	chicken-csc -static lextest.scm
-
-partest: partest.scm
-	chicken-csc -static partest.scm
 
 .PHONY: clean
 clean:

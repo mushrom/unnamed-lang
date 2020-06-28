@@ -60,6 +60,7 @@
        (print "got here")
        (apply fn args)))))
 
+;; translate character streams into scheme values
 (define (bind-tag t p)
   (abnf:bind (lambda (x) `((,t ,(reverse x))))
              p))
@@ -77,12 +78,12 @@
 (define (=s-bind str)
   (bind->string (=s str)))
 
+;; TODO: better errors, this is unused
 (define (error-check msg matcher)
   (lambda args
     (let ((res (apply matcher args)))
       (when (and (not (null? res)) (eq? (car res) 'error))
-             (print msg)
-             )
+             (print msg))
       res)))
 
 (define ws
@@ -725,6 +726,7 @@
           ((null? (cadr strm))              (sk strm))
           (else                             (fk strm)))))
 
+;; main parsing function
 (define (parse-c-top-level chars)
   (reset-defined-names)
   (let* ((p (bind-tag 'top-level (=> translation-unit)))
