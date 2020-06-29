@@ -11,6 +11,13 @@ compiler: $(OBJ)
 %.o: %.scm
 	chicken-csc $(CSCFLAGS) -c $<
 
+.PHONY: test
+test: compiler
+	for thing in tests/src/*.c; do \
+		echo "TEST $$thing"; \
+		./compiler $$thing; \
+	done
+
 .PHONY: clean
 clean:
 	rm -f $(OBJ) compiler
