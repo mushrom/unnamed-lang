@@ -1,32 +1,60 @@
-(declare (unit emitter-vm))
+(declare (unit emitter-llvm))
 (import (chicken pretty-print))
 
-(define (emit-vm-object ast port)
+(define (emit-llvm-object ast port)
   (assert (eq? (caaar ast) 'top-level))
-  (emit-vm-translation-unit (caadr (caar ast)) port))
+  (emit-llvm-translation-unit (caadr (caar ast))))
 
-(define (emit-vm-translation-unit ast port)
+(define (emit-llvm-translation-unit ast)
   (assert (is-translation-unit? ast))
-  (pp (caadr ast))
   (print "^ translation unit")
-  (emit-vm-external-declaration (caadr ast) port)
+  (emit-llvm-external-declaration (caadr ast))
   (when (not (null? (cdadr ast)))
-    (emit-vm-translation-unit (car (cdadr ast)) port)))
+    (emit-llvm-translation-unit (car (cdadr ast)))))
 
-(define (emit-vm-external-declaration ast port)
+(define (emit-llvm-external-declaration ast)
   (assert (is-external-declaration? ast))
   (let ((decl (caadr ast)))
     (cond ((is-function-definition? decl)
-           (emit-function-definition decl port))
+           (emit-llvm-function-definition decl))
           ((is-declaration? decl)
-           (emit-declaration decl port))
+           (emit-llvm-declaration decl))
           (else (assert #f)))))
 
-(define (emit-declaration ast port)
+(define (emit-llvm-declaration ast)
   (assert (is-declaration? ast))
-  (print "^ have a declaration"))
+  (pp ast)
+  (print "^ have a declaration")
 
-(define (emit-function-definition ast port)
+  (let looper ((xs (cadr ast))
+               (types '()))
+    (cond
+      ((null? xs)
+       (print "Reached end of declaration, unused types: " types)
+       '())
+
+      ((is-typedef-specifier? (car xs))
+       (pp xs)
+       (print "TODO: emit llvm type here")
+       '())
+
+      ((is-type-specifier? (car xs))
+       (let ((type (car (cadar xs))))
+         (print "^ type specifier " type)
+         (looper (cdr xs)
+                 (cons type types))))
+
+      ((is-declarator? (car xs))
+       (emit-llvm-declarator (car xs) types))
+
+      (else
+        (pp (car xs))
+        (looper (cdr xs) types)))))
+
+(define (emit-llvm-declarator ast return-types)
+  (print "^ have declarator, return types " return-types))
+
+(define (emit-llvm-function-definition ast)
   (print "^ have a function definition"))
 
 ;; TODO: seperate unit for type checks like this
@@ -38,4 +66,7 @@
 (define is-translation-unit?     (type-check-car 'translation-unit))
 (define is-external-declaration? (type-check-car 'external-declaration))
 (define is-declaration?          (type-check-car 'declaration))
+(define is-declarator?           (type-check-car 'declarator))
 (define is-function-definition?  (type-check-car 'function-definition))
+(define is-type-specifier?       (type-check-car 'type-specifier))
+(define is-type-qualifier?       (type-check-car 'type-qualifier))

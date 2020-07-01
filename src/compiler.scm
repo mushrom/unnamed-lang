@@ -1,6 +1,6 @@
 (declare (unit compiler)
          (uses parser)
-         (uses emitter-vm))
+         (uses emitter-llvm))
 
 (import (chicken pretty-print))
 
@@ -20,8 +20,8 @@
         (print "fatal error, exiting.")
         (exit 1))
       (begin
-        (emit-vm-object (analysis-passes ast '())
-                        (current-output-port))
+        (emit-llvm-object (analysis-passes ast '())
+                          (current-output-port))
         (print "parsed successfully.")))))
 
 ;; TODO: utility thing
