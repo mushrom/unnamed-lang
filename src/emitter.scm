@@ -1,9 +1,20 @@
 (declare (unit emitter-llvm))
 (import (chicken pretty-print))
 
+(define *counter* 0)
+(define (alloc-type-id)
+  (let ((c *counter*))
+    (set! *counter* (+ *counter* 1))
+    (string-append "%T" (number->string c))))
+
+(define (alloc-variable-id)
+  (let ((c *counter*))
+    (set! *counter* (+ *counter* 1))
+    (string-append "%x" (number->string c))))
+
 (define (emit-llvm-object ast port)
-  (assert (eq? (caaar ast) 'top-level))
-  (emit-llvm-translation-unit (caadr (caar ast))))
+  ;(pp ast)
+  (emit-llvm-translation-unit ast))
 
 (define (emit-llvm-translation-unit ast)
   (assert (is-translation-unit? ast))
@@ -23,7 +34,7 @@
 
 (define (emit-llvm-declaration ast)
   (assert (is-declaration? ast))
-  (pp ast)
+  ;(pp ast)
   (print "^ have a declaration")
 
   (let looper ((xs (cadr ast))
@@ -34,9 +45,7 @@
        '())
 
       ((is-typedef-specifier? (car xs))
-       (pp xs)
-       (print "TODO: emit llvm type here")
-       '())
+       (emit-typedef xs))
 
       ((is-type-specifier? (car xs))
        (let ((type (car (cadar xs))))
@@ -51,22 +60,13 @@
         (pp (car xs))
         (looper (cdr xs) types)))))
 
+(define (emit-typedef ast)
+  (assert is-typedef-specifier? (car ast))
+  (print "TODO: emit llvm type here"))
+
 (define (emit-llvm-declarator ast return-types)
+  (print "declare " return-types )
   (print "^ have declarator, return types " return-types))
 
 (define (emit-llvm-function-definition ast)
   (print "^ have a function definition"))
-
-;; TODO: seperate unit for type checks like this
-(define (type-check-car tag)
-  (lambda (xs)
-    (and (list? xs)
-         (eq? (car xs) tag))))
-
-(define is-translation-unit?     (type-check-car 'translation-unit))
-(define is-external-declaration? (type-check-car 'external-declaration))
-(define is-declaration?          (type-check-car 'declaration))
-(define is-declarator?           (type-check-car 'declarator))
-(define is-function-definition?  (type-check-car 'function-definition))
-(define is-type-specifier?       (type-check-car 'type-specifier))
-(define is-type-qualifier?       (type-check-car 'type-qualifier))

@@ -3,7 +3,8 @@
 ;; TODO: things to fix:
 ;;     - typedefs with identifiers that begin with primitive types
 ;;       will fail to match (eg. int16_t)
-(declare (unit parser))
+(declare (unit parser)
+         (uses ast-types))
 
 (import abnf   
         (prefix abnf abnf:)
@@ -403,19 +404,11 @@
 
 (define (get-defining-type typedef)
   ;; find the elements in [1, end-2]
-  (let loop ((ys typedef))
+  (let loop ((ys (cdr typedef)))
     (cond ((null? (cdddr ys))
            (list (car ys)))
           (else
             (cons (car ys) (loop (cdr ys)))))))
-
-(define (is-identifier? x)
-  (and (not (null? x))
-       (eq? 'identifier (car x))))
-
-(define (is-declarator? x)
-  (and (not (null? x))
-       (eq? 'declarator (car x))))
 
 (define (find-identifier xs)
   (cond ((null? xs) '())
@@ -450,6 +443,8 @@
         xs))
 
 ;; Declarations
+;; TODO: would it be more efficient to have the bind after tagging?
+;;       avoid redundantly reversing the list
 (define-tagged-rule declaration
   (abnf:bind handle-typedef-declaration
     (=> declaration-specifiers (=? init-declarator-list) (wssep #\;))))
@@ -503,17 +498,17 @@
       (=bar (=s "struct")
             (=s "union")))))
 
-(define-rule struct-declaration-list
+(define-tagged-rule struct-declaration-list
   (=> struct-declaration (=? struct-declaration-list)))
 
-(define-rule struct-declaration
+(define-tagged-rule struct-declaration
   (=> specifier-qualifier-list struct-declarator-list (wssep #\;)))
 
-(define-rule specifier-qualifier-list
+(define-tagged-rule specifier-qualifier-list
   (=bar (=> type-specifier (=? specifier-qualifier-list))
         (=> type-qualifier (=? specifier-qualifier-list))))
 
-(define-rule struct-declarator-list
+(define-tagged-rule struct-declarator-list
   (=> struct-declarator (=? (=> (wssep #\,) struct-declarator-list))))
 
 (define-rule struct-declarator
@@ -715,7 +710,6 @@
     (print   "                        ^ TODO: better error message"))
   `(syntax-error error-message-here ,s))
 
-
 ;; for some reason lexgen doesn't export this
 (define *eof-token* (read (open-input-string "")))
 
@@ -733,4 +727,5 @@
          (result (lex p err (list '() chars))))
     (cond ((or (null? (cadr result))
                (equal? (cadr result) *eof-token*)) result)
+          ((is-syntax-error? result) result)
           (else (err result)))))

@@ -1,4 +1,4 @@
-SRC = src/parser.scm src/main.scm src/compiler.scm src/emitter.scm
+SRC = $(wildcard src/*.scm)
 OBJ = $(SRC:.scm=.o)
 CSCFLAGS = -static
 #CSCFLAGS =
