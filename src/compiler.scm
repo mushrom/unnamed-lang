@@ -131,14 +131,35 @@
       (let* ((deftype  (get-defining-type ast))
              (stripped (strip-tag is-type-specifier? deftype)))
         (print "have typedef: " ident " => " stripped)
-        (append `((,ident ,stripped))
+        (append `((,ident ,(simplify-struct-specifier stripped)))
                 ;; TODO: recursive call for typedef structs
                 (find-composite-types-struct-union (cadar deftype)))))))
 
-(define (strip-tag typechecker? xs)
+;; strips the whole tree, including sub-trees of things that match typechecker?
+(define (strip-tag* typechecker? xs)
   (cond ((typechecker? xs) (strip-tag typechecker? (caadr xs)))
         ((list? xs) (map (lambda (x) (strip-tag typechecker? x)) xs))
         (else xs)))
+
+;; only strips the top-level match, doesn't match sub-trees
+(define (strip-tag typechecker? xs)
+  (cond ((typechecker? xs) (caadr xs))
+        ((list? xs) (map (lambda (x) (strip-tag typechecker? x)) xs))
+        (else xs)))
+
+
+(define (find-tag typechecker? xs)
+  (cond
+    ((null? xs) '())
+    ((typechecker? xs) xs)
+
+    ((list? xs)
+     (let ((t (find-tag typechecker? (car xs))))
+       (if (null? t)
+         (find-tag typechecker? (cdr xs))
+         t)))
+
+    (else '())))
 
 (define (find-composite-types-declarator ast types)
   (print "> find-composite-types-declarator here")
@@ -157,11 +178,59 @@
      (let ((str (cadar ast)))
        (cond
          ((and (string=? (car str) "struct")
-                (is-identifier? (cadr str)))
-          `((,(string-append "struct " (caadr (cadr str))) ,str)))
+               (is-identifier? (cadr str)))
+          `((,(string-append "struct " (caadr (cadr str)))
+              ,(simplify-struct-specifier ast))))
+
          ((and (string=? (car str) "union")
                (is-identifier? (cadr str)))
-          `((,(string-append "union " (caadr (cadr str))) ,str)))
+          `((,(string-append "union " (caadr (cadr str)))
+              ,(simplify-struct-specifier ast))))
+
          (else '()))))
 
     (else '())))
+
+;; takes a struct/union specifier and turns it into a list
+;; of (type identifier) pairs
+(define (simplify-struct-specifier ast)
+  (if (or (null? ast)
+          (not (is-struct-or-union-specifier? (car ast))))
+    ;; pass through if it's not a struct
+    ast
+
+    ;; else
+    (let* ((struct (find-tag is-struct-declaration-list? ast)))
+      (print "===> simplifying:")
+      (pp struct)
+      (simplify-struct-decl-list struct))))
+
+(define (simplify-struct-decl-list ast)
+  (if (or (null? ast)
+          (not (is-struct-declaration-list? ast)))
+    (begin
+      (print "=== > not a struct decl: ")
+      (pp ast)
+      '())
+
+    ;; else
+    (let* ((decls (cadr ast))
+           (cur   (car decls))
+           (next (if (null? (cdr decls)) '() (cadr decls))))
+      (append (simplify-struct-declaration cur)
+              (simplify-struct-decl-list   next)))))
+
+(define (simplify-struct-declaration ast)
+  (let* ((xs (cadr ast))
+         (specquals (car xs))
+         (decl (cadr xs)))
+    (print "===> struct declaration")
+    (pp decl)
+
+    ;; TODO: expand more, eg. arrays
+    (let loope ((curdecl (find-tag is-struct-declarator-list? ast)))
+      (if (null? curdecl)
+        '()
+        (append `((,specquals ,(find-tag is-declarator? curdecl)))
+                (loope (find-tag is-struct-declarator-list?
+                                 (cadr curdecl))))))))

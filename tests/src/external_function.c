@@ -2,9 +2,9 @@ const int foobizz = 10;
 
 typedef enum flag {
 	FLAG_GOOD,
-	FLAG_BAD,
-	FLAG_CAPTURED,
-	FLAG_WAVING,
+	FLAG_BAD = 1,
+	FLAG_CAPTURED = 2,
+	FLAG_WAVING = 3,
 } flag_t;
 
 union bar {
@@ -57,7 +57,12 @@ typedef char;
 
 typedef struct realdecl {
 	int a, real, declaration;
+	struct realdecl *leaves[2];
+	const int ***triplestar;
+	unsigned long int k[0];
 } realdecl_t;
+
+uint32_t struct bar thing;
 
 int main(int argc, char *argv[]) {
 	;;;

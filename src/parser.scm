@@ -505,8 +505,7 @@
   (=> specifier-qualifier-list struct-declarator-list (wssep #\;)))
 
 (define-tagged-rule specifier-qualifier-list
-  (=bar (=> type-specifier (=? specifier-qualifier-list))
-        (=> type-qualifier (=? specifier-qualifier-list))))
+  (=+ (=bar type-specifier type-qualifier)))
 
 (define-tagged-rule struct-declarator-list
   (=> struct-declarator (=? (=> (wssep #\,) struct-declarator-list))))
@@ -525,9 +524,9 @@
         identifier)))
 
 (define-rule enumerator-list
-  (=> enumerator (=? (=> (wssep #\,) enumerator-list))))
+  (=> enumerator (=? (=> (abnf:drop-consumed (wssep #\,)) enumerator-list))))
 
-(define-rule enumerator
+(define-tagged-rule enumerator
   (=> enumeration-constant (=? (=> (wssep #\=) constant-expression))))
 
 (define-tagged-rule type-qualifier
